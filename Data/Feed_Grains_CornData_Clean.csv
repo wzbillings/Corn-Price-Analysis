@@ -1,4 +1,4 @@
-Year,"Price (Recieved by Farmers, $/bushel)",Planted acreage (Million acres),Harvested for grain (Million acres),Production (Million bushels),Yield per harvested acre (Bushels per acre),Loan rate (dollars per bushel),Broiler:Feed Ratio,Egg:Feed Ratio,Hog:Corn Ratio,Milk:Feed Ratio,Steer-Heifer:Corn Ratio,Turkey:Feed,Market year mean global heat anomaly,Corn Exports (1000s of bushels),Corn Imports (1000s of bushels),Rail Rate Price Index,Rail Car Grain Loadings (1000s of rail cars),Total US Supply (Millions of Bushels),Total US Disappearance (Millions of Bushels),Quantity Corn Fed to Livestock (1000s of metric tons),Total Feed Animal Index
+year,price,acreage,harvest,production,yield,loan,bf,Ef,hc,mf,She,tf,heat,export,import,railrate,railcar,supply,disapp,feed,fai
 1866/67,0.66,NA,30.02,730.81,24.3,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 1867/68,0.78,NA,32.12,793.91,24.7,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 1868/69,0.62,NA,35.12,919.59,26.2,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
