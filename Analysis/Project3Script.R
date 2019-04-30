@@ -35,6 +35,10 @@ Model1866All <- lm(formula = price~index+harvest+production+yield,
                data = CornTraining)
 summary(Model1866All)
 
+#Matrix of pairwise correlations for the 1866 full model
+CornPairs = cbind(CornFull[,2],CornFull[,4:6],CornFull[,23])
+pairs(CornPairs)
+
 #Stepwise Regression for the model using the 1866 parameters
 ##Forward stepwise regression for the 1866 model
 Model1866ForwardStep <-
@@ -50,12 +54,15 @@ Model1866BackwardStep <-
        direction = "backward")
 
 #Analysis of Residuals for full 1866 model
-plot(y = Model1866All$residuals, x = CornTraining$price)
 acf(Model1866All$residuals,lag.max = 150)
 pacf(Model1866All$residuals,lag.max = 150)
 
 #Find Influential poitns for the 1866 model
-influence.measures(Model1866All)
+#influence.measures(Model1866All)
+
+
+
+
 
 # ##Adding in a few more variables...1926 model includes heat anomaly and acreage
 # Corn1926 = data.frame(CornFull$year,CornFull$price,CornFull$acreage,
@@ -72,3 +79,4 @@ influence.measures(Model1866All)
 # step(object = ModelFullReduced,
 #      scope = price~index+acreage+harvest+yield+heat+production,
 #      data = Corn1926)
+
