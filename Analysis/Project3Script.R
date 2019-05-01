@@ -9,6 +9,7 @@
 setwd("/Users/zanebillings/Documents/Academic/2019 Spring/MATH 375/Project3/WorkingDirectory")
 set.seed(863)
 library(tidyverse)
+library(car)
 
 #import data, rename columns, create dummy var for tracking time
 CornFull <- read_csv("Feed_Grains_CornData_Clean.csv")
@@ -57,26 +58,18 @@ Model1866BackwardStep <-
 acf(Model1866All$residuals,lag.max = 150)
 pacf(Model1866All$residuals,lag.max = 150)
 
+#Test for residual homoscedasticity and normality
+par(mfrow=c(2,2)) 
+plot(Model1866All)
+shapiro.test(Model1866All$residuals)
+ncvTest(Model1866All)
+
 #Find Influential poitns for the 1866 model
-#influence.measures(Model1866All)
+influence.measures(Model1866All)
 
 
 
 
 
-# ##Adding in a few more variables...1926 model includes heat anomaly and acreage
-# Corn1926 = data.frame(CornFull$year,CornFull$price,CornFull$acreage,
-#                       CornFull$harvest,CornFull$yield,CornFull$heat,
-#                       CornFull$production)[-(1:60),]
-# colnames(Corn1926) = c("year","price","acreage","harvest","yield","heat",
-#                        "production")
-# Corn1926$index = seq(from = 0, to = nrow(Corn1926) - 1, by = 1)
-#
-# #Set up 1926 full model
-# Model1926Full = lm(formula = price~index+acreage+harvest+yield+heat+production,
-#                    data = Corn1926)
-# summary(Model1926Full)
-# step(object = ModelFullReduced,
-#      scope = price~index+acreage+harvest+yield+heat+production,
-#      data = Corn1926)
+
 
