@@ -7,22 +7,22 @@
 
 #Start by setting working directory, random seed, and loading needed packages
 setwd("/Users/zanebillings/Documents/Academic/2019 Spring/MATH 375/Project3/WorkingDirectory")
-set.seed(863)
-library(tidyverse)
-library(car)
-library(nlme)
-library(olsrr)
+
+library(tidyverse) #used for data manipulation and graphing
+library(car) #used for linear model stuff
+library(nlme) #used for linear model stuff
+library(olsrr) #used for linear model stuff
 
 #import data, rename columns, create dummy var for tracking time
 CornFull <- read_csv("Feed_Grains_CornData_Clean.csv")
-n <- nrow(CornFull)
-CornFull$t <- seq(from = 0, to = (n - 1), by = 1)
+n <- nrow(CornFull) #count number of rows
+CornFull$t <- seq(from = 0, to = (n - 1), by = 1) #create index variable
 
 #set up the training dataset and the testing dataset
-CornTraining <- CornFull[1:floor(0.8*n), ]
-CornTesting <- setdiff(CornFull,CornTraining)
+CornTraining <- CornFull[1:floor(0.8*n), ] #first 80% is training
+CornTesting <- setdiff(CornFull,CornTraining) #everything else is testing
 
-#Set up the reduced model
+#Set up the reduced model...only intercept
 Model1866Reduced <- lm(formula = price~1,
                       data = CornTraining)
 summary(Model1866Reduced)
@@ -33,8 +33,8 @@ Model1866Full <- lm(formula = price~t+harvest+production+yield,
 summary(Model1866Full)
 
 #Matrix of pairwise correlations for the 1866 full model
-CornPairs = cbind(CornFull[,2],CornFull[,4:6],CornFull[,23])
-pairs(CornPairs)
+CornPairs = cbind(CornFull[,2],CornFull[,4:6],CornFull[,23]) #takes the vars I want to fit only
+pairs(CornPairs) #pairwise scatterplots for data in CornPairs
 
 #Stepwise Regression for the model using the 1866 parameters
 ##Forward stepwise regression for the 1866 model
@@ -51,59 +51,42 @@ Model1866BackwardStep <-
        direction = "backward")
 
 #Analysis of Residuals for full 1866 model
-par(mfrow=c(2,1))
-FullModelResACF <- acf(Model1866Full$residuals)
-FullModelResPACF <- pacf(Model1866Full$residuals)
+par(mfrow=c(2,1)) #plotting option
+FullModelResACF <- acf(Model1866Full$residuals) #ACF of residuals
+FullModelResPACF <- pacf(Model1866Full$residuals) #PACF of residuals
 
 #Test for residual homoscedasticity and normality
-par(mfrow=c(2,2)) 
-plot(Model1866Full)
-shapiro.test(Model1866Full$residuals)
-ols_test_breusch_pagan(Model1866Full)
+par(mfrow=c(2,2)) #plotting option
+plot(Model1866Full) #autoplot of diagnostics
 
 #Find Influential poitns for the 1866 model
-#influence.measures(Model1866Full)
 ols_plot_cooksd_bar(Model1866Full)
-ols_plot_dffits(Model1866Full)
-#ols_plot_dfbetas(Model1866Full)
+#cook's d plot shows which vars may be outliers.
 
-#GLS model with AR1 correlations
-AR1Term <- FullModelResPACF$acf[1]
-ModelAR1Res <- gls(model = price~harvest+production+yield,
-                  data = CornTraining[,],
-                  correlation = corAR1(AR1Term,~t,fixed=FALSE))
-summary(ModelAR1Res)
-plot(ModelAR1Res,main = "price~harvest+production+yield, AR1Res")
+#examine after 1952 to ignore weird trends at beginning
+Corn1952 <- CornFull[87:152,] #data from 1952 onward
+Corn1952Training <- Corn1952[1:floor(0.8*nrow(Corn1952)),] #first 80% is training
+Corn1952Testing <- setdiff(Corn1952,Corn1952Training) #rest is testing
 
-#GLS model without production, based on previous results.
-ModelAR1ResNoProd <- gls(model = price~harvest+yield,
-                          data = CornTraining,
-                          correlation = corAR1(AR1Term,~t,fixed=FALSE))
-summary(ModelAR1ResNoProd)
-plot(ModelAR1ResNoProd,main = "price~harvest+yield, AR1Res")
-
-#examine after some cutoff point in the 1960's-ish.
-Corn1952 <- CornFull[87:152,]
-Corn1952Training <- Corn1952[1:floor(0.8*nrow(Corn1952)),]
-Corn1952Testing <- setdiff(Corn1952,Corn1952Training)
-
+#full model with everything
 Model1952Full <- lm(formula = price ~ t+acreage+harvest+production+yield+loan+heat,
                     data = Corn1952Training)
 summary(Model1952Full)
+#reduced model intercept only
 Model1952Reduced <- lm(formula = price~1,
                        data = Corn1952Training)
 
-#Pairwise scatterplots of variables
+#Pairwise scatterplots of variables I want to use
 CornPairs1952 = cbind(Corn1952[,2],Corn1952[,3:7],Corn1952[,14],Corn1952[,23])
 pairs(CornPairs1952)
 
-##1952 Forward stepwise
+##1952 Forward stepwise regression
 Model1952ForwardStep <-
   step(object = Model1952Reduced,
        scope = price~t+harvest+production+yield+acreage+loan+heat,
        data = CornTraining,
        direction = "forward")
-##1952 Backward stepwise
+##1952 Backward stepwise regression
 Model1952BackwardStep <-
   step(object = Model1952Full,
        scope = price~1,
@@ -112,53 +95,66 @@ Model1952BackwardStep <-
 summary(Model1952ForwardStep)
 summary(Model1952BackwardStep)
 
+#rename things to make it easier
 Model1952Working <- Model1952ForwardStep
+#extract residuals
 Model1952WorkingResid <- Model1952ForwardStep$residuals
-par(mfrow=c(2,1))
+par(mfrow=c(2,1)) #plotting option
+#check to see if residuals are correlated
 Model1952ResidACF <- acf(Model1952WorkingResid)
 Model1952ResidPACF <- pacf(Model1952WorkingResid)
 
-##1952 GLS model
-AR1Term1952 <- Model1952ResidPACF$acf[1]
+##1952 GLS model...resdiuals are AR1
+AR1Term1952 <- Model1952ResidPACF$acf[1] #AR1 coeff estimate
+#fit the GLS model
 Model1952AR1Res <- gls(model = price~t+loan+yield+heat,
                    data = Corn1952Training,
                    correlation = corAR1(AR1Term1952,~t,fixed=FALSE))
 summary(Model1952AR1Res)
 
+#manual stepwise selection, remove highest p-value
 Model1952AR1ResStep2 <- gls(model = price~t+loan+yield,
                        data = Corn1952Training,
                        correlation = corAR1(AR1Term1952,~t,fixed=FALSE))
 summary(Model1952AR1ResStep2)
 
+#manual stepwise selection, remove highest p again
 Model1952AR1ResStep3 <- gls(model = price~t+yield,
                             data = Corn1952Training,
                             correlation = corAR1(AR1Term1952,~t,fixed=FALSE))
 summary(Model1952AR1ResStep3)
-phi = Model1952AR1ResStep3$modelStruct$corStruct;phi
-  
+
 #getting uncorrelated e's
-z = Model1952AR1ResStep3$residuals
-zn = length(z)
-par(mfrow=c(1,1)) 
-plot(z)
+z = Model1952AR1ResStep3$residuals #extract correlated residuals
+zf = Model1952AR1ResStep3$fitted #extract fitted values
+zn = length(z) #length of residuals
+par(mfrow=c(1,1)) #plotting option
+plot(zf,z) #correlated residuals vs fitted
 
-e = z[2:zn] - 0.8879908*z[1:(zn-1)]
-CornPairsReduced = cbind(Corn1952[,2],Corn1952[,5],Corn1952[,23])
-pairs(CornPairsReduced)
+e = z[2:zn] - 0.8879908*z[1:(zn-1)] #correct for correlation in resid
+plot(zf,e) #plot corrected res vs Fitted
+pacf(e) #plot PACF of corrected Residuals
 
+#generated more pairwise comparisons
+CornPairsReduced = cbind(Corn1952[,2],Corn1952[,5],Corn1952[,23]) #scatterplots
+pairs(CornPairsReduced) #pairwsie scatterplots
+
+#take log transform of price and refit GLS
 Model1952AR1ResLog <- gls(model = log10(price)~t+yield,
                             data = Corn1952Training,
                             correlation = corAR1(AR1Term1952,~t,fixed=FALSE))
 summary(Model1952AR1ResLog)
-r = Model1952AR1ResLog$residuals
-plot(r,main =  "Residuals: Log(price), AR1 correlation")
-elog = r[2:zn] - 0.9156077*r[1:(zn-1)]
-plot(r,Corn1952Training$price,main = "Residuals: Log(price), AR1 correlation, corrected")
+r = Model1952AR1ResLog$residuals #residuals
+elog = r[2:zn] - 0.9156077*r[1:(zn-1)] #correlation corrected residuals
+flog = Model1952AR1ResLog$fitted[-1] #fitted values
+plot(flog,elog) #plotted corrected residuals vs Fitted
+pacf(elog) #check PACF of corrected Residuals
 
-#construct variance estimates to correct for heteroskedasticity 
+#construct variance estimates to correct for heteroskedasticity
+#this regression estimates the variance of the residuals
 ResidualVarEstimate <- lm(log10(Corn1952Training$price)~r)
 summary(ResidualVarEstimate)
-ResCfs <- coef(ResidualVarEstimate)
+#take the values of the estimate variances
 VarEstimates <- 1/(ResidualVarEstimate$fitted.values)^2
 
 #weighted gls model w/ log transform price
@@ -166,30 +162,23 @@ Model1952AR1ResLogWeighted <- gls(model = log10(price)~t+yield,
                           data = Corn1952Training,
                           correlation = corAR1(AR1Term1952,~t,fixed=FALSE),
                           weights = varFixed(~VarEstimates))
-rw = Model1952AR1ResLogWeighted$residuals
-rwn = length(rw)
-plot(rw, main = "Residuals: Log(price), AR1 correlation, weighted")
-CorrectedResiduals = rw[2:rwn] - 0.9975218*rw[1:(rwn-1)]
-plot(CorrectedResiduals)
-GoodModel <- Model1952AR1ResLogWeighted
-BadModel <- Model1952AR1ResLog
-summary(GoodModel)
-#check influential measures, remove outliers, refit
-par(mfrow = c(1,2))
-plot(elog,main = "Residuals: Log(price), AR1 correlation, corrected")
-plot(CorrectedResiduals, main = "Residuals: Log(price), AR1 correlation, weighted, corrected")
+rw = Model1952AR1ResLogWeighted$residuals #extract residuals
+rwn = length(rw) #length of residuals
+CorrectedResiduals = rw[2:rwn] - 0.9975218*rw[1:(rwn-1)] #correlation corrected residuals
+rfw = Model1952AR1ResLogWeighted$fitted
+plot(rfw,CorrectedResiduals) #plotted res vs fitted
+pacf(CorrectedResiduals) #plot PACF of corrected residuals
 
-
-par(mfrow=c(2,1))
-pacf(CorrectedResiduals)
-plot(GoodModel$fitted[-1],CorrectedResiduals)
-text(CorrectedResiduals~GoodModel$fitted[-1], labels = Corn1952Training$t[-1],pos=4)
-
-exclude = c(105,106,120)
-ExcludedData = Corn1952Training[-exclude,]
-ExcludedVariance = VarEstimates[-exclude]
-ExcludeModel <- gls(model = log10(price)~t+yield,
-                                  data = ExcludedData,
-                                  correlation = corAR1(AR1Term1952,~t,fixed=FALSE),
-                                  weights = varFixed(~ExcludedVariance))
-summary(ExcludeModel)
+#validate original GLS model...no weights or log tf with test data
+#for presentation since it has to be 5-7 minutes
+TestModel <- gls(model = price~t+yield,
+                            data = Corn1952Testing,
+                            correlation = corAR1(AR1Term1952,~t,fixed=FALSE))
+summary(TestModel)
+tmres <- TestModel$residuals #extract residuals
+resn <- length(TestModel$residuals) #length of residuals
+tmcr <- tmres[2:resn] - 0.9975218*tmres[1:(resn-1)] #corrected residuals
+tmf <- TestModel$fitted #fitted values
+#plot correct residuals vs. fitted and view corrected res. PACF
+plot(tmf[-1],tmcr,xlab = "Fitted",ylab = "Corrected residuals",main = "Test residuals")
+pacf(tmcr,main = "Testing Data: Corrected residual PACF")
