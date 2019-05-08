@@ -132,7 +132,7 @@ par(mfrow=c(1,1)) #plotting option
 plot(zf,z) #correlated residuals vs fitted
 
 e = z[2:zn] - 0.8879908*z[1:(zn-1)] #correct for correlation in resid
-plot(zf,e) #plot corrected res vs Fitted
+plot(zf[-1],e) #plot corrected res vs Fitted
 pacf(e) #plot PACF of corrected Residuals
 
 #generated more pairwise comparisons
@@ -166,19 +166,22 @@ rw = Model1952AR1ResLogWeighted$residuals #extract residuals
 rwn = length(rw) #length of residuals
 CorrectedResiduals = rw[2:rwn] - 0.9975218*rw[1:(rwn-1)] #correlation corrected residuals
 rfw = Model1952AR1ResLogWeighted$fitted
-plot(rfw,CorrectedResiduals) #plotted res vs fitted
+plot(rfw[-1],CorrectedResiduals) #plotted res vs fitted
 pacf(CorrectedResiduals) #plot PACF of corrected residuals
 
 #validate original GLS model...no weights or log tf with test data
 #for presentation since it has to be 5-7 minutes
-TestModel <- gls(model = price~t+yield,
-                            data = Corn1952Testing,
-                            correlation = corAR1(AR1Term1952,~t,fixed=FALSE))
+TestModel <- predict(Model1952AR1ResStep3,Corn1952Testing)
 summary(TestModel)
-tmres <- TestModel$residuals #extract residuals
-resn <- length(TestModel$residuals) #length of residuals
+tmres <- TestModel - Corn1952Testing$price#extract residuals
+resn <- length(tmres) #length of residuals
 tmcr <- tmres[2:resn] - 0.9975218*tmres[1:(resn-1)] #corrected residuals
-tmf <- TestModel$fitted #fitted values
+standr <- tmres/sd(tmres) #standardized residuals
+scaloc <- sqrt(abs(standr)) #sqrt(abs(standardized res)) for scale-location plot
 #plot correct residuals vs. fitted and view corrected res. PACF
-plot(tmf[-1],tmcr,xlab = "Fitted",ylab = "Corrected residuals",main = "Test residuals")
-pacf(tmcr,main = "Testing Data: Corrected residual PACF")
+par(mfrow = c(2,2)) #plotting option
+#plot res vs. fitted, PACF, qqnorm plot, and scale-location in order.
+plot(TestModel[-1],tmcr,xlab = "Fitted",ylab = "Corrected residuals",main = "Test residuals")
+pacf(tmcr,main = "Testing PACF")
+qqnorm(tmcr); qqline(tmcr)
+plot(TestModel,scaloc, main = "Scale-Location", xlab = "Fitted",ylab = "Sqrt. abs. standardized residuals")
