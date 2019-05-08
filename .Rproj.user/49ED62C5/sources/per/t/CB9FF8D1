@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1557250761208.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3443437145",
+    "id" : "CB9FF8D1",
+    "lastKnownWriteTime" : 1557287814,
+    "last_content_update" : 1557287814,
+    "path" : "~/Documents/Academic/2019 Spring/MATH 375/Project3/Project3_Git/Analysis/Project3Script.R",
+    "project_path" : "Analysis/Project3Script.R",
+    "properties" : {
+        "cursorPosition" : "18,19",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
