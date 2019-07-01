@@ -171,9 +171,11 @@ pacf(CorrectedResiduals) #plot PACF of corrected residuals
 
 #validate original GLS model...no weights or log tf with test data
 #for presentation since it has to be 5-7 minutes
-TestModel <- predict(Model1952AR1ResStep3,Corn1952Testing)
+TestModel <- gls(model = price~t+yield,
+                                         data = Corn1952Testing,
+                                         correlation = corAR1(AR1Term1952,~t,fixed=FALSE))
 summary(TestModel)
-tmres <- TestModel - Corn1952Testing$price#extract residuals
+tmres <- TestModel$residuals #extract residuals
 resn <- length(tmres) #length of residuals
 tmcr <- tmres[2:resn] - 0.9975218*tmres[1:(resn-1)] #corrected residuals
 standr <- tmres/sd(tmres) #standardized residuals
@@ -181,7 +183,7 @@ scaloc <- sqrt(abs(standr)) #sqrt(abs(standardized res)) for scale-location plot
 #plot correct residuals vs. fitted and view corrected res. PACF
 par(mfrow = c(2,2)) #plotting option
 #plot res vs. fitted, PACF, qqnorm plot, and scale-location in order.
-plot(TestModel[-1],tmcr,xlab = "Fitted",ylab = "Corrected residuals",main = "Test residuals")
+plot(TestModel$fitted[-1],tmcr,xlab = "Fitted",ylab = "Corrected residuals",main = "Test residuals")
 pacf(tmcr,main = "Testing PACF")
 qqnorm(tmcr); qqline(tmcr)
-plot(TestModel,scaloc, main = "Scale-Location", xlab = "Fitted",ylab = "Sqrt. abs. standardized residuals")
+plot(TestModel$fitted,scaloc, main = "Scale-Location", xlab = "Fitted",ylab = "Sqrt. abs. standardized residuals")
