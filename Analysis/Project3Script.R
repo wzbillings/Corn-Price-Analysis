@@ -1,6 +1,6 @@
 ######################
 # Project 3 R Script #
-# Hoops Billings     #
+# Zane Billings     #
 ######################
 #This script is used to perform a multiple linear regression analysis on the USDA
 #Feed grains database cleaned data, with farmer received price as the response variable.
@@ -16,6 +16,8 @@ library(olsrr) #used for linear model stuff
 #import data, rename columns, create dummy var for tracking time
 CornFull <- read_csv("Feed_Grains_CornData_Clean.csv")
 n <- nrow(CornFull) #count number of rows
+
+# Create time as an index variable, year 1866 = year 0.
 CornFull$t <- seq(from = 0, to = (n - 1), by = 1) #create index variable
 
 #set up the training dataset and the testing dataset
