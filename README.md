@@ -1,7 +1,5 @@
-# Stats375Project3
-Stuff for the third project (data analysis MLR) for MATH 375, Spring 2019.
-
-I did a multiple linear regression analysis on some data from the USDA Feed Grains Database for MATH 375: Statistical Methods II with Dr. Wagaman at Western Carolina University. This repo contains all of the files, including data, CLEAN data that I wanted to use, R script for analysis, and my final presentation.
+# Regression Model of USDA Corn prices
+I did a multiple linear regression analysis on some data from the USDA Feed Grains Database for MATH 375: Statistical Methods II at Western Carolina University. This repo contains all of the files, including data, CLEAN data that I wanted to use, R script for analysis, and my final presentation.
 
 ## Description of contents.
 
@@ -17,3 +15,8 @@ I did a multiple linear regression analysis on some data from the USDA Feed Grai
 * images: contains all images used in the slides.
 * keynote presentation: the original presentation as created in the MacOS keynote software.
 * pdf presentation: the actual .pdf file I presented for my project.
+
+### coming soon
+* reorganization
+* analysis writeup
+* weighted least squares? :O
