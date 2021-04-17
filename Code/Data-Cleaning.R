@@ -100,8 +100,29 @@ dat4 <-
 
 ################################################################################
 ## cleaning sheet FGYearbookTable18-Full col O
-### corn grain export
-### corn total export
+
+dat5 <-
+  readxl::read_excel(
+    path = pth,
+    sheet = "FGYearbookTable18-Full",
+    skip = 1
+  ) %>%
+  dplyr::select(
+    export_type = `Export and mkt yr 1/`,
+    year = `...2`,
+    annual = `Annual`
+  ) %>%
+  dplyr::mutate(export_type = zoo::na.locf(export_type)) %>%
+  dplyr::filter(export_type %in% c("Corn grain", "Corn total 2/")) %>% 
+  filter(!is.na(year) & !is.na(annual)) %>%
+  tidyr::pivot_wider(
+    names_from = export_type,
+    values_from = annual
+  ) %>%
+  dplyr::rename(
+    annual_exported_corn_grain = "Corn grain",
+    annual_exported_corn_total = "Corn total 2/"
+  )
 
 ################################################################################
 ## cleaning sheet FGYearbookTable20-Full
