@@ -13,7 +13,7 @@ library(janitor)
 library(tidyr)
 
 # Path to data file
-pth <- here::here("Data", "Raw-Data", "FeedGrainsAllYears.xls")
+pth <- here::here("Data", "Raw", "FeedGrainsAllYears.xls")
 
 ################################################################################
 # Helper functions
