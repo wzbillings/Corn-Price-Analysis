@@ -17,13 +17,6 @@ pth <- here::here("Data", "Raw", "FeedGrainsAllYears.xls")
 
 ################################################################################
 # Helper functions
-get_corn_rows_only <- function(.data, filter_com = "Corn") {
-  .data %>%
-    dplyr::mutate(commodity = zoo::na.locf(commodity)) %>%
-    dplyr::filter(commodity == filter_com) %>%
-    dplyr::select(-commodity) %>%
-    janitor::remove_empty(which = "rows")
-}
 
 years_to_numeric <- function(.data) {
   .data %>%
@@ -40,12 +33,19 @@ dat01 <-
     skip = 2,
     col_names = c("commodity", "year", "acreage", "harvest", "production", 
                   "yield", "weighted_avg_farm_price", "loan_rate")
-  ) %>% 
-  get_corn_rows_only() %>%
-  years_to_numeric()
+  ) %>%
+  dplyr::mutate(commodity = zoo::na.locf(commodity)) %>%
+  # If any element in non-commodity columns is not NA, keep that row.
+  dplyr::filter(if_any(!commodity, ~ !is.na(.x))) %>%
+  years_to_numeric() %>%
+  # Not all data is in terms of commodity, so make these all separate variables.
+  tidyr::pivot_wider(
+    names_from = commodity,
+    values_from = !c(commodity, year)
+  )
 
 ################################################################################
-## cleaning sheet FGYearbookTable02-Full cols C - N
+## cleaning sheet FGYearbookTable02-Full
 
 dat02 <- 
   readxl::read_excel(
@@ -56,12 +56,22 @@ dat02 <-
                   "supply_production", "supply_imports", "supply_total",
                   "dis_food_alc_ind", "dis_feed_use", "dis_domestic",
                   "dis_exports", "dis_total", "ending_stocks")
-  ) %>% 
-  get_corn_rows_only() %>%
-  years_to_numeric()
+  ) %>%
+  dplyr::mutate(commodity = zoo::na.locf(commodity)) %>%
+  dplyr::filter(if_any(!commodity, ~ !is.na(.x))) %>%
+  years_to_numeric() %>%
+  dplyr::mutate(commodity = ifelse(commodity == "Coarse grains 5/", "coarse_grains", commodity)) %>%
+  # Not all data is in terms of commodity, so make these all separate variables.
+  tidyr::pivot_wider(
+    names_from = commodity,
+    values_from = !c(commodity, year)
+  )
 
 ################################################################################
-## cleaning sheet FGYearbooKTable09-Full col O
+# Sheets 03--08 are all quarterly so will not be cleaned unless necessary.
+
+################################################################################
+## cleaning sheet FGYearbooKTable09, annual column only.
 
 dat09 <- 
   readxl::read_excel(
@@ -74,12 +84,31 @@ dat09 <-
     year = `...2`,
     wt_avg_farmer_price = `Wt avg 2/`
   ) %>%
-  get_corn_rows_only(filter_com = "Corn\n(dollars per bushel)") %>%
+  dplyr::mutate(commodity = zoo::na.locf(commodity)) %>%
+  dplyr::filter(if_any(!commodity, ~ !is.na(.x))) %>%
   years_to_numeric() %>%
-  years_to_numeric()
+  tidyr::pivot_wider(
+    names_from = commodity,
+    values_from = wt_avg_farmer_price,
+    id_cols = year
+  ) %>%
+  dplyr::rename(
+    wt_avg_farmer_price_per_bushel_corn = `Corn\n(dollars per bushel)`,
+    wt_avg_farmer_price_per_bushel_sorghum = `Sorghum\n(dollars per bushel)`,
+    wt_avg_farmer_price_per_hundredweight_sorghum = `Sorghum\n(dollars per hundredweight)`
+  )
 
 ################################################################################
-## cleaning sheet FGYearbookTable15-Full col O
+## sheet 10 TO-DO
+
+################################################################################
+## sheet 11 TO-DO
+
+################################################################################
+## sheets 12, 13, 14: maybe skip for now, unsure.
+
+################################################################################
+## cleaning sheet FGYearbookTable15-Full, annual column only
 
 dat15 <-
   readxl::read_excel(
@@ -136,6 +165,9 @@ dat18 <-
   years_to_numeric()
 
 ################################################################################
+## sheet 16-19 TO-DO
+
+################################################################################
 ## cleaning sheet FGYearbookTable20-Full
 
 dat20 <-
@@ -150,17 +182,20 @@ dat20 <-
     annual = `Annual`
   ) %>%
   dplyr::mutate(import_type = zoo::na.locf(import_type)) %>%
-  dplyr::filter(import_type %in% c("Corn grain", "Corn total 2/")) %>% 
-  filter(!is.na(year) & !is.na(annual)) %>%
+  dplyr::filter(if_any(!import_type, ~ !is.na(.x))) %>%
   tidyr::pivot_wider(
     names_from = import_type,
     values_from = annual
   ) %>%
   dplyr::rename(
     annual_imported_corn_grain = "Corn grain",
-    annual_imported_corn_total = "Corn total 2/"
+    annual_imported_corn_total = "Corn total 2/",
+    annual_imported_sorghum_total = "Sorghum total 3/"
   ) %>%
   years_to_numeric()
+
+################################################################################
+## sheets 21-27 TO-DO
 
 ################################################################################
 ## cleaning sheet FGYearbookTable28-Full
@@ -191,7 +226,7 @@ dat28 <-
 # Join data sets together
 
 ## Intialize dataframe with dat01 for joining in loop.
-corn_dat <- dat01
+fg_dat <- dat01
 
 ## Make list of existing dataset names. This allows more sheets to be cleaned
 ##  later if necessary without changing this code.
@@ -200,20 +235,23 @@ sheets <- ls()[startsWith(ls(), "dat")]
 ## Join all of these datasets together by year.
 ## Index starts at 2 to ignore dat01.
 for (i in 2:length(sheets)) {
-  corn_dat <- dplyr::left_join(
-    x = corn_dat,
+  fg_dat <- dplyr::left_join(
+    x = fg_dat,
     y = get(sheets[[i]]), 
     by = "year"
   )
 }
 
+## Clean names before exporting dataset
+fg_dat <- janitor::clean_names(fg_dat)
+
 saveRDS(
-  object = corn_dat,
+  object = fg_dat,
   file = here::here("Data", "Processed", "Clean-Data.Rds")
 )
 
 write.csv(
-  x = corn_dat,
+  x = fg_dat,
   file = here::here("Data", "Processed", "Clean-Data.csv")
 )
 
