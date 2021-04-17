@@ -207,5 +207,15 @@ for (i in 2:length(sheets)) {
   )
 }
 
+saveRDS(
+  object = corn_dat,
+  file = here::here("Data", "Processed", "Clean-Data.Rds")
+)
+
+write.csv(
+  x = corn_dat,
+  file = here::here("Data", "Processed", "Clean-Data.csv")
+)
+
 ################################################################################
 # End of script
