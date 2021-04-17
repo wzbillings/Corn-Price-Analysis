@@ -10,16 +10,25 @@ library(stringr)
 library(zoo)
 library(dplyr)
 library(janitor)
+library(tidyr)
 
 # Path to data file
 pth <- here::here("Data", "Raw-Data", "FeedGrainsAllYears.xls")
 
-# List of data to grab by sheet
+################################################################################
+# Helper functions
+get_corn_rows_only <- function(.data, filter_com = "Corn") {
+  .data %>%
+    dplyr::mutate(commodity = zoo::na.locf(commodity)) %>%
+    dplyr::filter(commodity == filter_com) %>%
+    dplyr::select(-commodity) %>%
+    janitor::remove_empty(which = "rows")
+}
 
 ################################################################################
-# Clean sheet 01
+# cleaning sheet FGYearbookTable01-Full all cols
 
-sheet1 <- 
+dat1 <- 
   readxl::read_excel(
     path = pth,
     sheet = "FGYearbookTable01-Full",
@@ -27,37 +36,80 @@ sheet1 <-
     col_names = c("commodity", "year", "acreage", "harvest", "production", 
                   "yield", "weighted_avg_farm_price", "loan_rate")
   ) %>% 
-  dplyr::mutate(commodity = zoo::na.locf(commodity)) %>%
-  dplyr::filter(commodity == "Corn") %>%
-  dplyr::select(-commodity) %>%
-  janitor::remove_empty(which = "rows")
+  get_corn_rows_only()
 
 ################################################################################
-## FGYearbookTable02-Full cols C - N
+## cleaning sheet FGYearbookTable02-Full cols C - N
+
+dat2 <- 
+  readxl::read_excel(
+    path = pth,
+    sheet = "FGYearbookTable02-Full",
+    skip = 3,
+    col_names = c("commodity", "year", "beginning_stocks", 
+                  "supply_production", "supply_imports", "supply_total",
+                  "dis_food_alc_ind", "dis_feed_use", "dis_domestic",
+                  "dis_exports", "dis_total", "ending_stocks")
+  ) %>% 
+  get_corn_rows_only()
 
 ################################################################################
-## FGYearbooKTable09-Full col O
+## cleaning sheet FGYearbooKTable09-Full col O
+
+dat3 <- 
+  readxl::read_excel(
+    path = pth,
+    sheet = "FGYearbookTable09-Full",
+    skip = 1
+  ) %>%
+  dplyr::select(
+    commodity = `Commodity and\nmkt year 1/`,
+    year = `...2`,
+    wt_avg_farmer_price = `Wt avg 2/`
+  ) %>%
+  get_corn_rows_only(filter_com = "Corn\n(dollars per bushel)")
 
 ################################################################################
-## FGYearbookTable10-Full col O (rows are in groups)
-### broiler-feed ratio
-### market egg-feed ratio
-### hog-corn ratio
-### milk-feed ratio
-### steer and heifer-corn ratio
-### turkey-feed ratio
+## cleaning sheet FGYearbookTable15-Full col O
+
+dat4 <-
+  readxl::read_excel(
+    path = pth,
+    sheet = "FGYearbookTable15-Full",
+    skip = 1
+  ) %>%
+  dplyr::select(
+    ratio_type = `Ratio and\nmkt yr 1/`,
+    year = `...2`,
+    avg_ratio = `Avg 2/`
+  ) %>%
+  dplyr::mutate(ratio_type = zoo::na.locf(ratio_type)) %>%
+  filter(!is.na(year) & !is.na(avg_ratio)) %>%
+  tidyr::pivot_wider(
+    names_from = ratio_type,
+    values_from = avg_ratio
+  ) %>%
+  dplyr::rename(
+    broiler_feed = `Broiler-feed\n3/ 4/`,
+    market_egg_feed = `Market egg-feed\n3/ 5/`,
+    hog_corn = `Hog-corn\n3/ 6/`,
+    milk_feed = `Milk-feed\n3/ 7/`,
+    steer_heifer_corn = `Steer and heifer-corn\n3/ 8/`,
+    turkey_feed = `Turkey-feed\n3/ 9/`
+  )
+
 ################################################################################
-## FGYearbookTable18-Full col O (grouped)
+## cleaning sheet FGYearbookTable18-Full col O
 ### corn grain export
 ### corn total export
 
 ################################################################################
-## FGYearbookTable20-Full col O (grouped)
+## cleaning sheet FGYearbookTable20-Full
 ### corn grain import
 ### corn total import
 
 ################################################################################
-## FGYearbookTable28-Full col O
+## cleaning sheet FGYearbookTable28-Full
 ### produce price index
 ### rail car loadings
 
