@@ -17,12 +17,12 @@ box::use(
 pth <- here::here("Data", "Raw", "FeedGrainsAllYears.xls")
 
 ################################################################################
-# Helper functions
+# Helper functions ####
 
-years_to_numeric <- function(.data, col) {
+years_to_numeric <- function(.col) {
   # Convert a variable in the form character "2016/17" -> integer "2016".
   out <-
-    .data[[col]] |>
+    .col |>
     stringr::str_sub(start = 1L, end = 4L) |>
     as.integer()
 
@@ -30,7 +30,7 @@ years_to_numeric <- function(.data, col) {
 }
 
 ################################################################################
-# cleaning sheet FGYearbookTable01-Full all cols
+# cleaning sheet FGYearbookTable01-Full all cols ####
 
 dat01 <-
   readxl::read_excel(
@@ -42,16 +42,14 @@ dat01 <-
   ) |>
   tidyr::fill(commodity, .direction = "down") |>
   # If any element in non-commodity columns is not NA, keep that row.
+  # I.e. drop rows that are all NA, except for commodity which
+  # might have message rows in it which no data that need to be dropped.
   dplyr::filter(if_any(!commodity, ~ !is.na(.x))) |>
-  years_to_numeric() |>
-  # Not all data is in terms of commodity, so make these all separate variables.
-  tidyr::pivot_wider(
-    names_from = commodity,
-    values_from = !c(commodity, year)
-  )
+  # Convert years to a numeric format
+  dplyr::mutate(year = years_to_numeric(year))
 
 ################################################################################
-## cleaning sheet FGYearbookTable02-Full
+# cleaning sheet FGYearbookTable02-Full ####
 
 dat02 <-
   readxl::read_excel(
@@ -63,26 +61,21 @@ dat02 <-
                   "dis_food_alc_ind", "dis_feed_use", "dis_domestic",
                   "dis_exports", "dis_total", "ending_stocks")
   ) |>
-  dplyr::mutate(commodity = zoo::na.locf(commodity)) |>
+  tidyr::fill(commodity, .direction = "down") |>
   dplyr::filter(if_any(!commodity, ~ !is.na(.x))) |>
-  years_to_numeric() |>
+  dplyr::mutate(year = years_to_numeric(year)) |>
   dplyr::mutate(
     commodity = ifelse(
       commodity == "Coarse grains 5/",
       "coarse_grains",
       commodity)
-  ) |>
-  # Not all data is in terms of commodity, so make these all separate variables.
-  tidyr::pivot_wider(
-    names_from = commodity,
-    values_from = !c(commodity, year)
   )
 
 ################################################################################
 # Sheets 03--08 are all quarterly so will not be cleaned unless necessary.
 
 ################################################################################
-## cleaning sheet FGYearbooKTable09, annual column only.
+# cleaning sheet FGYearbooKTable09, annual column only. ####
 
 dat09 <-
   readxl::read_excel(
@@ -95,19 +88,17 @@ dat09 <-
     year = `...2`,
     wt_avg_farmer_price = `Wt avg 2/`
   ) |>
-  dplyr::mutate(commodity = zoo::na.locf(commodity)) |>
+  tidyr::fill(commodity, .direction = "down") |>
   dplyr::filter(if_any(!commodity, ~ !is.na(.x))) |>
-  years_to_numeric() |>
-  tidyr::pivot_wider(
-    names_from = commodity,
-    values_from = wt_avg_farmer_price,
-    id_cols = year
+  tidyr::separate(
+    commodity,
+    into = c("commodity", "price_units"),
+    sep = "\n"
   ) |>
-  dplyr::rename(
-    wt_avg_farmer_price_per_bushel_corn = `Corn\n(dollars per bushel)`,
-    wt_avg_farmer_price_per_bushel_sorghum = `Sorghum\n(dollars per bushel)`,
-    wt_avg_farmer_price_per_hundredweight_sorghum =
-      `Sorghum\n(dollars per hundredweight)`
+  dplyr::mutate(
+    year = years_to_numeric(year),
+    # Remove parentheses from units
+    units = stringr::str_remove_all(price_units, pattern = "[\\(\\)]")
   )
 
 ################################################################################
@@ -120,7 +111,7 @@ dat09 <-
 ## sheets 12, 13, 14: maybe skip for now, unsure.
 
 ################################################################################
-## cleaning sheet FGYearbookTable15-Full, annual column only
+# cleaning sheet FGYearbookTable15-Full, annual column only ####
 
 dat15 <-
   readxl::read_excel(
@@ -133,24 +124,26 @@ dat15 <-
     year = `...2`,
     avg_ratio = `Avg 2/`
   ) |>
-  dplyr::mutate(ratio_type = zoo::na.locf(ratio_type)) |>
-  filter(!is.na(year) & !is.na(avg_ratio)) |>
+  tidyr::fill(ratio_type, .direction = "down") |>
+  dplyr::filter(!is.na(year) & !is.na(avg_ratio)) |>
+  tidyr::separate(
+    ratio_type,
+    into = c("ratio_type", NA),
+    sep = "\n"
+  ) |>
+  dplyr::mutate(
+    year = years_to_numeric(year),
+    ratio_type = stringr::str_replace(ratio_type, "-", " to "),
+    ratio_type = paste(ratio_type, "ratio")
+  ) |>
   tidyr::pivot_wider(
     names_from = ratio_type,
     values_from = avg_ratio
   ) |>
-  dplyr::rename(
-    broiler_feed = `Broiler-feed\n3/ 4/`,
-    market_egg_feed = `Market egg-feed\n3/ 5/`,
-    hog_corn = `Hog-corn\n3/ 6/`,
-    milk_feed = `Milk-feed\n3/ 7/`,
-    steer_heifer_corn = `Steer and heifer-corn\n3/ 8/`,
-    turkey_feed = `Turkey-feed\n3/ 9/`
-  ) |>
-  years_to_numeric()
+  janitor::clean_names()
 
 ################################################################################
-## cleaning sheet FGYearbookTable18-Full col O
+# cleaning sheet FGYearbookTable18-Full ####
 
 dat18 <-
   readxl::read_excel(
@@ -163,9 +156,9 @@ dat18 <-
     year = `...2`,
     annual = `Annual`
   ) |>
-  dplyr::mutate(export_type = zoo::na.locf(export_type)) |>
+  tidyr::fill(export_type, .direction = "down") |>
   dplyr::filter(export_type %in% c("Corn grain", "Corn total 2/")) |>
-  filter(!is.na(year) & !is.na(annual)) |>
+  dplyr::filter(!is.na(year) & !is.na(annual)) |>
   tidyr::pivot_wider(
     names_from = export_type,
     values_from = annual
@@ -174,13 +167,13 @@ dat18 <-
     annual_exported_corn_grain = "Corn grain",
     annual_exported_corn_total = "Corn total 2/"
   ) |>
-  years_to_numeric()
+  dplyr::mutate(year = years_to_numeric(year))
 
 ################################################################################
 ## sheet 16-19 TO-DO
 
 ################################################################################
-## cleaning sheet FGYearbookTable20-Full
+# cleaning sheet FGYearbookTable20-Full ####
 
 dat20 <-
   readxl::read_excel(
@@ -193,8 +186,8 @@ dat20 <-
     year = `...2`,
     annual = `Annual`
   ) |>
-  dplyr::mutate(import_type = zoo::na.locf(import_type)) |>
-  dplyr::filter(if_any(!import_type, ~ !is.na(.x))) |>
+  tidyr::fill(import_type, .direction = "down") |>
+  dplyr::filter(dplyr::if_any(!import_type, ~ !is.na(.x))) |>
   tidyr::pivot_wider(
     names_from = import_type,
     values_from = annual
@@ -204,13 +197,13 @@ dat20 <-
     annual_imported_corn_total = "Corn total 2/",
     annual_imported_sorghum_total = "Sorghum total 3/"
   ) |>
-  years_to_numeric()
+  dplyr::mutate(year = years_to_numeric(year))
 
 ################################################################################
 ## sheets 21-27 TO-DO
 
 ################################################################################
-## cleaning sheet FGYearbookTable28-Full
+# cleaning sheet FGYearbookTable28-Full ####
 
 dat28 <-
   readxl::read_excel(
@@ -223,8 +216,8 @@ dat28 <-
     year = `...2`,
     annual = `CY Jan-Dec`
   ) |>
-  dplyr::mutate(index_type = zoo::na.locf(index_type)) |>
-  filter(!is.na(year) & !is.na(annual)) |>
+  tidyr::fill(index_type, .direction = "down") |>
+  dplyr::filter(!is.na(year) & !is.na(annual)) |>
   tidyr::pivot_wider(
     names_from = index_type,
     values_from = annual
@@ -237,7 +230,7 @@ dat28 <-
   )
 
 ################################################################################
-# Join data sets together
+# Join data sets together ####
 
 ## Intialize dataframe with dat01 for joining in loop.
 fg_dat <- dat01
