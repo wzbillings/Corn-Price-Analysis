@@ -4,6 +4,15 @@
 # The USDA feed grains data needs a lot of cleaning work.
 ###
 
+box::use(
+  here,
+  readxl,
+  stringr,
+  dplyr,
+  janitor,
+  tidyr
+)
+
 library(here)
 library(readxl)
 library(stringr)

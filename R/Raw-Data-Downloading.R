@@ -10,7 +10,7 @@
 #  to get the updated link.
 ###
 
-library(here)
+box::use(here)
 
 # Current path as of 2021-04-16.
 pth <- paste0("https://www.ers.usda.gov/webdocs/DataFiles/50048/",
