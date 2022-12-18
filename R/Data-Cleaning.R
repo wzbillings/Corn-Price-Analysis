@@ -16,6 +16,9 @@ box::use(
 # Path to data file
 pth <- here::here("Data", "Raw", "FeedGrainsAllYears.xls")
 
+# List to hold data frames
+dat_ls <- list()
+
 ################################################################################
 # Helper functions ####
 
@@ -32,7 +35,7 @@ years_to_numeric <- function(.col) {
 ################################################################################
 # cleaning sheet FGYearbookTable01-Full all cols ####
 
-dat01 <-
+dat_ls$dat01 <-
   readxl::read_excel(
     path = pth,
     sheet = "FGYearbookTable01-Full",
@@ -51,7 +54,7 @@ dat01 <-
 ################################################################################
 # cleaning sheet FGYearbookTable02-Full ####
 
-dat02 <-
+dat_ls$dat02 <-
   readxl::read_excel(
     path = pth,
     sheet = "FGYearbookTable02-Full",
@@ -77,7 +80,7 @@ dat02 <-
 ################################################################################
 # cleaning sheet FGYearbooKTable09, annual column only. ####
 
-dat09 <-
+dat_ls$dat09 <-
   readxl::read_excel(
     path = pth,
     sheet = "FGYearbookTable09-Full",
@@ -113,7 +116,7 @@ dat09 <-
 ################################################################################
 # cleaning sheet FGYearbookTable15-Full, annual column only ####
 
-dat15 <-
+dat_ls$dat15 <-
   readxl::read_excel(
     path = pth,
     sheet = "FGYearbookTable15-Full",
@@ -145,7 +148,7 @@ dat15 <-
 ################################################################################
 # cleaning sheet FGYearbookTable18-Full ####
 
-dat18 <-
+dat_ls$dat18 <-
   readxl::read_excel(
     path = pth,
     sheet = "FGYearbookTable18-Full",
@@ -175,7 +178,7 @@ dat18 <-
 ################################################################################
 # cleaning sheet FGYearbookTable20-Full ####
 
-dat20 <-
+dat_ls$dat20 <-
   readxl::read_excel(
     path = pth,
     sheet = "FGYearbookTable20-Full",
@@ -205,7 +208,7 @@ dat20 <-
 ################################################################################
 # cleaning sheet FGYearbookTable28-Full ####
 
-dat28 <-
+dat_ls$dat28 <-
   readxl::read_excel(
     path = pth,
     sheet = "FGYearbookTable28-Full",
@@ -232,32 +235,25 @@ dat28 <-
 ################################################################################
 # Join data sets together ####
 
-## Intialize dataframe with dat01 for joining in loop.
-fg_dat <- dat01
 
-## Make list of existing dataset names. This allows more sheets to be cleaned
-##  later if necessary without changing this code.
-sheets <- ls()[startsWith(ls(), "dat")]
 
 ## Join all of these datasets together by year.
 ## Index starts at 2 to ignore dat01.
-for (i in 2:length(sheets)) {
-  fg_dat <- dplyr::left_join(
-    x = fg_dat,
-    y = get(sheets[[i]]),
-    by = "year"
+fg_dat <-
+  purrr::reduce(
+    dat_ls,
+    dplyr::left_join
   )
-}
 
 ## Clean names before exporting dataset
 fg_dat <- janitor::clean_names(fg_dat)
 
-saveRDS(
-  object = fg_dat,
+readr::write_rds(
+  x = fg_dat,
   file = here::here("Data", "Processed", "Clean-Data.Rds")
 )
 
-write.csv(
+readr::write_csv(
   x = fg_dat,
   file = here::here("Data", "Processed", "Clean-Data.csv")
 )
