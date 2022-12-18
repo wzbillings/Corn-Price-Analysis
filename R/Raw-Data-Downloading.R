@@ -13,10 +13,11 @@
 library(here)
 
 # Current path as of 2021-04-16.
-pth = "https://www.ers.usda.gov/webdocs/DataFiles/50048/Feed%20Grains%20Yearbook%20Tables-All%20Years.xls?v=4138.8"
+pth <- paste0("https://www.ers.usda.gov/webdocs/DataFiles/50048/",
+              "Feed%20Grains%20Yearbook%20Tables-All%20Years.xls?v=4138.8")
 
 # Output file name
-out = here::here("Data", "Raw-Data", "FeedGrainsAllYears.xls")
+out <- here::here("Data", "Raw-Data", "FeedGrainsAllYears.xls")
 
 # Download excel file to raw data repo.
 download.file(
