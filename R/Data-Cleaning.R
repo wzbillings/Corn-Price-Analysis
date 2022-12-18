@@ -13,14 +13,6 @@ box::use(
   tidyr
 )
 
-library(here)
-library(readxl)
-library(stringr)
-library(zoo)
-library(dplyr)
-library(janitor)
-library(tidyr)
-
 # Path to data file
 pth <- here::here("Data", "Raw", "FeedGrainsAllYears.xls")
 
@@ -48,7 +40,7 @@ dat01 <-
     col_names = c("commodity", "year", "acreage", "harvest", "production",
                   "yield", "weighted_avg_farm_price", "loan_rate")
   ) |>
-  dplyr::mutate(commodity = zoo::na.locf(commodity)) |>
+  tidyr::fill(commodity, .direction = "down") |>
   # If any element in non-commodity columns is not NA, keep that row.
   dplyr::filter(if_any(!commodity, ~ !is.na(.x))) |>
   years_to_numeric() |>
